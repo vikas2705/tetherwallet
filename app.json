@@ -1,29 +1,64 @@
 {
   "expo": {
-    "name": "TetherWallet",
-    "slug": "TetherWallet",
+    "name": "Tether Wallet",
+    "slug": "tether-wallet",
     "version": "1.0.0",
+    "scheme": "tetherwallet",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0A0A0F"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "io.tether.wallet",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to scan QR codes for sending crypto",
+        "NSFaceIDUsageDescription": "Used to securely unlock your wallet"
+      }
     },
     "android": {
+      "package": "io.tether.wallet",
+      "minSdkVersion": 29,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#0A0A0F"
       },
-      "predictiveBackGestureEnabled": false
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Tether Wallet to use Face ID to unlock your wallet."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Tether Wallet to access your camera to scan QR codes."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 29
+          }
+        }
+      ]
+    ],
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
     }
   }
