@@ -1,4 +1,4 @@
-export type NetworkId = 'ethereum' | 'bitcoin' | 'tron'
+export type NetworkId = 'ethereum' | 'bitcoin' | 'tron' | 'sepolia'
 
 export interface NetworkConfig {
   id: NetworkId
@@ -41,6 +41,16 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     chainId: 1,
     rpcUrl: 'https://eth.drpc.org',
   },
+  sepolia: {
+    id: 'sepolia',
+    name: 'Sepolia Testnet',
+    symbol: 'ETH',
+    decimals: 18,
+    color: '#A78BF5',
+    icon: 'eth',
+    chainId: 11155111,
+    rpcUrl: 'https://rpc.sepolia.org',
+  },
   bitcoin: {
     id: 'bitcoin',
     name: 'Bitcoin',
@@ -82,6 +92,28 @@ export const TOKENS: TokenConfig[] = [
     decimals: 6,
     network: 'ethereum',
     contractAddress: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    isNative: false,
+    color: '#26A17B',
+    icon: 'usdt',
+  },
+  {
+    id: 'sepolia-eth',
+    name: 'Sepolia ETH',
+    symbol: 'ETH',
+    decimals: 18,
+    network: 'sepolia',
+    isNative: true,
+    color: '#A78BF5',
+    icon: 'eth',
+  },
+  {
+    id: 'usdt-sepolia',
+    name: 'Tether USD (Sepolia)',
+    symbol: 'USDT',
+    decimals: 6,
+    network: 'sepolia',
+    // Official Tether USDT on Sepolia testnet
+    contractAddress: '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0',
     isNative: false,
     color: '#26A17B',
     icon: 'usdt',

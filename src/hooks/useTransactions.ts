@@ -36,9 +36,10 @@ export function useTransactions() {
         }
       }
 
-      // Fetch EVM and TRON transactions from Indexer API
+      // Fetch EVM, Sepolia, and TRON transactions from Indexer API
       const indexerTxs = await indexer.fetchAllTransactions({
         ethereum: addresses.ethereum,
+        sepolia: addresses.sepolia,
         tron: addresses.tron,
       })
       allTxs.push(...indexerTxs)

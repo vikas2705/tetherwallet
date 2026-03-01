@@ -71,6 +71,8 @@ export default function HomeScreen() {
   const usdtErcBalance = balances['usdt-erc20']
   const trxBalance = balances['trx']
   const usdtTrcBalance = balances['usdt-trc20']
+  const sepoliaEthBalance = balances['sepolia-eth']
+  const usdtSepoliaBalance = balances['usdt-sepolia']
 
   if (wallets.length === 0) {
     return (
@@ -138,7 +140,7 @@ export default function HomeScreen() {
                 <Text style={styles.balanceSymbol}>₮</Text>
                 <Text style={styles.balanceTether}>
                   {formatBalance(
-                    (usdtErcBalance?.raw ?? 0n) + (usdtTrcBalance?.raw ?? 0n),
+                    (usdtErcBalance?.raw ?? 0n) + (usdtTrcBalance?.raw ?? 0n) + (usdtSepoliaBalance?.raw ?? 0n),
                     6,
                     2,
                   )}
@@ -186,6 +188,11 @@ export default function HomeScreen() {
                   balance={usdtTrcBalance}
                   onPress={() => router.push({ pathname: '/receive', params: { tokenId: 'usdt-trc20' } })}
                 />
+                <TokenRow
+                  token={TOKENS.find((t) => t.id === 'usdt-sepolia')!}
+                  balance={usdtSepoliaBalance}
+                  onPress={() => router.push({ pathname: '/receive', params: { tokenId: 'usdt-sepolia' } })}
+                />
               </View>
             </View>
 
@@ -197,6 +204,11 @@ export default function HomeScreen() {
                   token={TOKENS.find((t) => t.id === 'eth')!}
                   balance={ethBalance}
                   onPress={() => router.push({ pathname: '/receive', params: { tokenId: 'eth' } })}
+                />
+                <TokenRow
+                  token={TOKENS.find((t) => t.id === 'sepolia-eth')!}
+                  balance={sepoliaEthBalance}
+                  onPress={() => router.push({ pathname: '/receive', params: { tokenId: 'sepolia-eth' } })}
                 />
                 <TokenRow
                   token={TOKENS.find((t) => t.id === 'btc')!}
@@ -263,11 +275,13 @@ function QuickAction({ icon, label, color, onPress }: {
 
 const NETWORK_COLORS: Record<string, string> = {
   ethereum: Colors.ethereum,
+  sepolia: Colors.sepolia,
   bitcoin: Colors.bitcoin,
   tron: Colors.tron,
 }
 const NETWORK_NAMES: Record<string, string> = {
   ethereum: 'Ethereum',
+  sepolia: 'Sepolia Testnet',
   bitcoin: 'Bitcoin',
   tron: 'TRON',
 }

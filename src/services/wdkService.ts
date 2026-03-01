@@ -105,6 +105,11 @@ export async function initWDK(seedPhrase: string): Promise<void> {
     console.warn('BTC wallet registration failed (may need network):', e)
   }
 
+  // Register Sepolia (Ethereum testnet — same EVM manager, different RPC + chainId)
+  wdkInstance.registerWallet('sepolia', WalletManagerEvm, {
+    provider: NETWORKS.sepolia.rpcUrl,
+  })
+
   // Register TRON
   wdkInstance.registerWallet('tron', WalletManagerTron, {
     provider: NETWORKS.tron.tronProvider,
@@ -146,16 +151,18 @@ export async function getAddress(network: NetworkId, index = 0): Promise<string>
 export async function getAllAddresses(index = 0): Promise<Record<NetworkId, string>> {
   if (!wdkInstance) throw new Error('WDK not initialized')
 
-  const [ethAddress, btcAddress, tronAddress] = await Promise.allSettled([
+  const [ethAddress, btcAddress, tronAddress, sepoliaAddress] = await Promise.allSettled([
     wdkInstance.getAccount('ethereum', index).then((a: any) => a.getAddress()),
     wdkInstance.getAccount('bitcoin', index).then((a: any) => a.getAddress()),
     wdkInstance.getAccount('tron', index).then((a: any) => a.getAddress()),
+    wdkInstance.getAccount('sepolia', index).then((a: any) => a.getAddress()),
   ])
 
   return {
     ethereum: ethAddress.status === 'fulfilled' ? ethAddress.value : '',
     bitcoin: btcAddress.status === 'fulfilled' ? btcAddress.value : '',
     tron: tronAddress.status === 'fulfilled' ? tronAddress.value : '',
+    sepolia: sepoliaAddress.status === 'fulfilled' ? sepoliaAddress.value : '',
   }
 }
 
@@ -209,7 +216,7 @@ export async function quoteSend(
   }
 
   const nativeDecimals = network === 'bitcoin' ? 8 : network === 'tron' ? 6 : 18
-  const feeSymbol = network === 'bitcoin' ? 'BTC' : network === 'tron' ? 'TRX' : 'ETH'
+  const feeSymbol = network === 'bitcoin' ? 'BTC' : network === 'tron' ? 'TRX' : 'ETH' // ETH covers both mainnet and Sepolia
 
   return {
     fee: feeRaw,

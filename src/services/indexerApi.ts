@@ -26,6 +26,7 @@ const api = axios.create({
 const NETWORK_TO_BLOCKCHAIN: Partial<Record<NetworkId, string>> = {
   ethereum: 'ethereum',
   tron: 'tron',
+  sepolia: 'ethereum-sepolia', // WDK indexer testnet identifier (falls back gracefully if unsupported)
 }
 
 // Map token symbols to indexer token identifiers
@@ -34,6 +35,8 @@ const TOKEN_TO_INDEXER: Record<string, string> = {
   'eth': 'eth',
   'usdt-trc20': 'usdt',
   'trx': 'trx',
+  'usdt-sepolia': 'usdt',
+  'sepolia-eth': 'eth',
 }
 
 export interface IndexerTransfer {
@@ -138,6 +141,12 @@ export async function fetchAllTransactions(
   if (addressMap.ethereum) {
     requests.push(fetchTokenTransfers('ethereum', 'eth', addressMap.ethereum))
     requests.push(fetchTokenTransfers('ethereum', 'usdt-erc20', addressMap.ethereum))
+  }
+
+  // Sepolia transfers (testnet — indexer support may vary)
+  if (addressMap.sepolia) {
+    requests.push(fetchTokenTransfers('sepolia', 'sepolia-eth', addressMap.sepolia))
+    requests.push(fetchTokenTransfers('sepolia', 'usdt-sepolia', addressMap.sepolia))
   }
 
   // TRON transfers

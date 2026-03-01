@@ -33,6 +33,7 @@ export const Colors = {
 
   // Networks
   ethereum: '#627EEA',
+  sepolia: '#A78BF5',
   bitcoin: '#F7931A',
   tron: '#FF0013',
   usdt: '#26A17B',

@@ -27,6 +27,7 @@ type Filter = 'all' | NetworkId
 
 const EXPLORER_URLS: Record<NetworkId, string> = {
   ethereum: 'https://etherscan.io/tx/',
+  sepolia: 'https://sepolia.etherscan.io/tx/',
   bitcoin: 'https://mempool.space/tx/',
   tron: 'https://tronscan.org/#/transaction/',
 }
@@ -138,6 +139,7 @@ export default function ActivityScreen() {
 const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'ethereum', label: 'ETH' },
+  { id: 'sepolia', label: 'Sepolia' },
   { id: 'bitcoin', label: 'BTC' },
   { id: 'tron', label: 'TRX' },
 ]
