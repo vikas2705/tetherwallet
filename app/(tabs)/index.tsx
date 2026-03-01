@@ -90,7 +90,6 @@ export default function HomeScreen() {
     setIsRefreshing(false)
   }, [refreshBalances])
 
-  console.log('balances-vikas-', balances)
   // Calculate total portfolio value (simplified - no price feed)
   const ethBalance = balances['eth']
   const btcBalance = balances['btc']
@@ -168,8 +167,8 @@ export default function HomeScreen() {
                 <Text style={styles.balanceTether}>
                   {formatBalance(
                     (usdtErcBalance?.raw ?? 0n) + (usdtTrcBalance?.raw ?? 0n) + (usdtSepoliaBalance?.raw ?? 0n),
-                    0,
-                    0,
+                    6,
+                    2,
                   )}
                 </Text>
                 <Text style={styles.balanceCurrency}> USDT</Text>

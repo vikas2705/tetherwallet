@@ -16,6 +16,7 @@ import {
   Platform,
 } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { useFocusEffect } from '@react-navigation/native'
 import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Colors } from '../src/theme/colors'
@@ -27,12 +28,23 @@ import type { TokenConfig, NetworkId } from '../src/config/networks'
 import { isValidAddress } from '../src/utils/validation'
 import { parseAmount, formatBalance, formatFee, isValidAmount } from '../src/utils/formatters'
 import * as wdk from '../src/services/wdkService'
+import { useBalances } from '../src/hooks/useBalances'
 
 type Step = 'address' | 'amount' | 'confirm' | 'sent'
 
 export default function SendScreen() {
   const params = useLocalSearchParams<{ address?: string; network?: string; tokenId?: string }>()
   const { addresses, balances } = useWalletStore()
+  const { refreshBalances } = useBalances()
+
+  // Refresh balances when Send screen is focused so handleSend uses up-to-date balance
+  useFocusEffect(
+    useCallback(() => {
+      if (Object.keys(addresses).length > 0) {
+        refreshBalances()
+      }
+    }, [addresses, refreshBalances]),
+  )
 
   const [step, setStep] = useState<Step>('address')
   const [toAddress, setToAddress] = useState(params.address ?? '')
@@ -118,16 +130,42 @@ export default function SendScreen() {
     await handleGetFeeQuote()
     setStep('confirm')
   }, [amount, handleGetFeeQuote])
-
   const handleSend = useCallback(async () => {
+    const amountBig = parseAmount(amount, selectedToken.decimals)
+
+    // Pre-check: ensure sufficient token balance before sending (uses balance from store, refreshed on screen focus)
+    if (!selectedToken.isNative) {
+      const available = balance?.raw ?? 0n
+      if (available < amountBig) {
+        Alert.alert(
+          'Insufficient Balance',
+          `You don't have enough ${selectedToken.symbol}. Available: ${formatBalance(available, selectedToken.decimals, 4)}`,
+        )
+        return
+      }
+      if (!selectedToken.contractAddress || selectedToken.contractAddress.length !== 42) {
+        Alert.alert('Transaction Failed', 'Invalid token contract configuration. Please try again later.')
+        return
+      }
+    } else {
+      const available = balance?.raw ?? 0n
+      const fee = feeQuote?.fee ?? 0n
+      if (available < amountBig + fee) {
+        Alert.alert(
+          'Insufficient Balance',
+          `You need enough ${selectedToken.symbol} for the amount plus gas. Available: ${formatBalance(available, selectedToken.decimals, 4)}`,
+        )
+        return
+      }
+    }
+
     setIsSending(true)
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
 
     try {
-      const amountBig = parseAmount(amount, selectedToken.decimals)
       const result = await wdk.sendTransaction(
         selectedToken.network,
-        toAddress,
+        toAddress.trim(),
         amountBig,
         selectedToken.isNative ? undefined : selectedToken.contractAddress,
       )
@@ -135,16 +173,27 @@ export default function SendScreen() {
       setTxHash(result.hash)
       setStep('sent')
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    } catch (err) {
-      const message = String(err).includes('insufficient')
-        ? 'Insufficient balance to complete this transaction.'
-        : `Transaction failed: ${err}`
+    } catch (err: unknown) {
+      const errStr = err instanceof Error ? err.message : String(err)
+      let message: string
+      if (/insufficient/i.test(errStr)) {
+        message = 'Insufficient balance to complete this transaction.'
+      } else if (
+        /CALL_EXCEPTION|estimateGas|missing revert data/i.test(errStr)
+      ) {
+        message =
+          'Transaction simulation failed. Check that you have enough ' +
+          (selectedToken.isNative ? `${selectedToken.symbol} for the amount and gas.` : `${selectedToken.symbol} and enough ${selectedToken.network === 'tron' ? 'TRX' : 'ETH'} for gas.`) +
+          ' Then try again.'
+      } else {
+        message = `Transaction failed: ${errStr}`
+      }
       Alert.alert('Transaction Failed', message)
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
     } finally {
       setIsSending(false)
     }
-  }, [amount, selectedToken, toAddress])
+  }, [amount, balance, selectedToken, toAddress, feeQuote])
 
   const handleUseMax = useCallback(() => {
     if (!balance || balance.raw === 0n) return
