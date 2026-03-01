@@ -25,6 +25,7 @@ import * as wdk from '../../src/services/wdkService'
 import { TOKENS } from '../../src/config/networks'
 import { formatBalance } from '../../src/utils/formatters'
 import { PrimaryButton } from '../../src/components/PrimaryButton'
+import axios from 'axios'
 
 export default function HomeScreen() {
   const { addresses, balances, isUnlocked, activeWalletId, wallets } = useWalletStore()
@@ -50,6 +51,43 @@ export default function HomeScreen() {
       load()
     }
   }, [activeWalletId])
+
+  useEffect(() => {
+    const makeApiCall = async () => {
+      const path = '/api/v1/sepolia/usdt/0x9858effd232b4033e47d90003d41ec34ecaeda94/token-balances'
+      const proxyBase = process.env.EXPO_PUBLIC_WDK_PROXY_URL ?? ''
+      const apiKey = process.env.EXPO_PUBLIC_WDK_INDEXER_API_KEY ?? ''
+
+      // When proxy is set, call your Node server instead of wdk-api.tether.io (avoids ERR_NETWORK from app)
+      const url = proxyBase ? `${proxyBase.replace(/\/$/, '')}${path}` : `https://wdk-api.tether.io${path}`
+
+      try {
+        const { data } = await axios.get(url, {
+          timeout: 15000,
+          headers: proxyBase
+            ? { Accept: 'application/json' }
+            : {
+                'x-api-key': apiKey,
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'User-Agent': 'TetherWallet/1.0',
+              },
+          validateStatus: () => true,
+        })
+        console.log('makeApiCall result:', data)
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error('WDK API ERR_NETWORK – no response. Code:', error.code)
+          if (proxyBase) {
+            console.error('Using proxy:', proxyBase, '– ensure the proxy server is running (node wdk-proxy-server.js)')
+          }
+        } else {
+          console.error('makeApiCall error:', error)
+        }
+      }
+    }
+    makeApiCall()
+  }, [])
 
   // Refresh balances when addresses are loaded
   useEffect(() => {
@@ -244,7 +282,7 @@ export default function HomeScreen() {
                       <View style={styles.addressInfo}>
                         <Text style={styles.networkName}>{NETWORK_NAMES[network]}</Text>
                         <Text style={styles.addressText} numberOfLines={1}>
-                          {address?.slice(0, 8)}...{address?.slice(-6)}
+                          {(address && typeof address === 'string') ? `${address.slice(0, 8)}...${address.slice(-6)}` : ''}
                         </Text>
                       </View>
                       <Text style={styles.addressArrow}>›</Text>

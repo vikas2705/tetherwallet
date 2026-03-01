@@ -55,9 +55,10 @@ export function formatUSD(value: number): string {
 /**
  * Shorten an address for display
  */
-export function shortenAddress(address: string, chars = 6): string {
-  if (!address || address.length < chars * 2 + 2) return address
-  return `${address.slice(0, chars)}...${address.slice(-chars)}`
+export function shortenAddress(address: string | undefined | null, chars = 6): string {
+  const s = typeof address === 'string' ? address : ''
+  if (!s || s.length < chars * 2 + 2) return s
+  return `${s.slice(0, chars)}...${s.slice(-chars)}`
 }
 
 /**
@@ -108,7 +109,8 @@ export function formatFee(feeWei: bigint, decimals: number, symbol: string): str
 /**
  * Truncate a tx hash for display
  */
-export function shortenTxHash(hash: string, chars = 8): string {
-  if (!hash || hash.length < chars * 2 + 2) return hash
-  return `${hash.slice(0, chars)}...${hash.slice(-chars)}`
+export function shortenTxHash(hash: string | undefined | null, chars = 8): string {
+  const s = typeof hash === 'string' ? hash : ''
+  if (!s || s.length < chars * 2 + 2) return s
+  return `${s.slice(0, chars)}...${s.slice(-chars)}`
 }

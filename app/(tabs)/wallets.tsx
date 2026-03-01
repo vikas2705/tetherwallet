@@ -11,6 +11,8 @@ import {
   Alert,
   Switch,
   Platform,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native'
 import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
@@ -39,6 +41,7 @@ export default function WalletsScreen() {
   const [isSwitching, setIsSwitching] = useState(false)
   const [switchingTo, setSwitchingTo] = useState<string | null>(null)
   const [biometricEnabled, setBiometricEnabled] = useState(false)
+  const [checkingNetworks, setCheckingNetworks] = useState(false)
 
   useEffect(() => {
     biometric.checkAvailability()
@@ -196,6 +199,35 @@ export default function WalletsScreen() {
           </View>
         </View>
 
+        {/* Network status */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Network</Text>
+          <TouchableOpacity
+            style={styles.networkStatusBtn}
+            onPress={async () => {
+              setCheckingNetworks(true)
+              try {
+                const results = await wdk.checkNetworkConnectivity()
+                const lines = results.map(
+                  (r) => `${r.network}: ${r.ok ? '✓ Connected' + (r.detail ? ` (${r.detail})` : '') : '✗ ' + (r.error ?? 'Failed')}`,
+                )
+                Alert.alert('Network status', lines.join('\n'))
+              } catch (e) {
+                Alert.alert('Network check failed', e instanceof Error ? e.message : String(e))
+              } finally {
+                setCheckingNetworks(false)
+              }
+            }}
+            disabled={checkingNetworks}
+          >
+            {checkingNetworks ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <Text style={styles.networkStatusBtnText}>Check network connectivity</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
         {/* About */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
@@ -291,5 +323,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textTertiary,
     marginTop: 4,
+  },
+  networkStatusBtn: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  networkStatusBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 })

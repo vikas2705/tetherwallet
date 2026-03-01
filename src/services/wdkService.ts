@@ -22,9 +22,20 @@ async function loadModules() {
   WDK = wdkModule.default
   const evmModule = await import('@tetherto/wdk-wallet-evm')
   WalletManagerEvm = evmModule.default
-  const btcModule = await import('@tetherto/wdk-wallet-btc')
-  WalletManagerBtc = btcModule.default
-  ElectrumWs = btcModule.ElectrumWs
+
+  try {
+    const btcModule = await import('@tetherto/wdk-wallet-btc')
+    WalletManagerBtc = btcModule.default
+    ElectrumWs = btcModule.ElectrumWs
+  } catch (e) {
+    console.warn(
+      '[WDK] Bitcoin wallet module failed to load (React Native Buffer/stream polyfill issue). BTC disabled.',
+      e,
+    )
+    WalletManagerBtc = null
+    ElectrumWs = null
+  }
+
   const tronModule = await import('@tetherto/wdk-wallet-tron')
   WalletManagerTron = tronModule.default
 }
@@ -70,6 +81,20 @@ export interface TxTransfer {
 // Singleton WDK instance per seed phrase session
 let wdkInstance: any = null
 let currentSeed: string | null = null
+let sepoliaRegistered = false
+
+async function ensureSepoliaRegistered(): Promise<void> {
+  if (!wdkInstance || sepoliaRegistered) return
+  try {
+    wdkInstance.registerWallet('sepolia', WalletManagerEvm, {
+      provider: NETWORKS.sepolia.rpcUrl,
+    })
+    sepoliaRegistered = true
+  } catch (e) {
+    console.warn('Sepolia registration failed:', e)
+    throw e
+  }
+}
 
 /**
  * Initialize WDK with the given seed phrase
@@ -85,30 +110,31 @@ export async function initWDK(seedPhrase: string): Promise<void> {
 
   if (wdkInstance) return
 
+  sepoliaRegistered = false
   wdkInstance = new WDK(seedPhrase)
 
-  // Register Ethereum
+  // Register Ethereum (WDK expects RPC URL string; it creates the provider internally)
   wdkInstance.registerWallet('ethereum', WalletManagerEvm, {
     provider: NETWORKS.ethereum.rpcUrl,
   })
 
-  // Register Bitcoin with WebSocket transport for React Native compatibility
-  try {
-    const wsTransport = new ElectrumWs({
-      url: NETWORKS.bitcoin.btcWsUrl,
-    })
-    wdkInstance.registerWallet('bitcoin', WalletManagerBtc, {
-      client: wsTransport,
-      network: 'bitcoin',
-    })
-  } catch (e) {
-    console.warn('BTC wallet registration failed (may need network):', e)
-  }
+  // Sepolia is registered lazily on first use (ensureSepoliaRegistered) to avoid
+  // JsonRpcProvider network-detection failures on startup when the RPC is slow/unreachable.
 
-  // Register Sepolia (Ethereum testnet — same EVM manager, different RPC + chainId)
-  wdkInstance.registerWallet('sepolia', WalletManagerEvm, {
-    provider: NETWORKS.sepolia.rpcUrl,
-  })
+  // Register Bitcoin only if the module loaded (can fail in RN due to Buffer/stream deps)
+  if (WalletManagerBtc && ElectrumWs) {
+    try {
+      const wsTransport = new ElectrumWs({
+        url: NETWORKS.bitcoin.btcWsUrl,
+      })
+      wdkInstance.registerWallet('bitcoin', WalletManagerBtc, {
+        client: wsTransport,
+        network: 'bitcoin',
+      })
+    } catch (e) {
+      console.warn('BTC wallet registration failed (may need network):', e)
+    }
+  }
 
   // Register TRON
   wdkInstance.registerWallet('tron', WalletManagerTron, {
@@ -126,6 +152,7 @@ export function disposeWDK(): void {
     wdkInstance.dispose()
     wdkInstance = null
     currentSeed = null
+    sepoliaRegistered = false
   }
 }
 
@@ -137,10 +164,31 @@ export function isWDKInitialized(): boolean {
 }
 
 /**
+ * Return the RPC / provider URLs the WDK is configured to use (from NETWORKS).
+ * Useful for debugging and verifying which endpoints are in use.
+ */
+export function getWDKRpcUrls(): {
+  ethereum: string | undefined
+  sepolia: string | undefined
+  bitcoin: string | undefined
+  tron: string | undefined
+} {
+  return {
+    ethereum: NETWORKS.ethereum.rpcUrl,
+    sepolia: NETWORKS.sepolia.rpcUrl,
+    bitcoin: NETWORKS.bitcoin.btcWsUrl,
+    tron: NETWORKS.tron.tronProvider,
+  }
+}
+
+/**
  * Get address for a network
  */
 export async function getAddress(network: NetworkId, index = 0): Promise<string> {
   if (!wdkInstance) throw new Error('WDK not initialized')
+  if (network === 'sepolia') {
+    await ensureSepoliaRegistered()
+  }
   const account = await wdkInstance.getAccount(network, index)
   return account.getAddress()
 }
@@ -151,18 +199,22 @@ export async function getAddress(network: NetworkId, index = 0): Promise<string>
 export async function getAllAddresses(index = 0): Promise<Record<NetworkId, string>> {
   if (!wdkInstance) throw new Error('WDK not initialized')
 
-  const [ethAddress, btcAddress, tronAddress, sepoliaAddress] = await Promise.allSettled([
+  const [ethAddress, btcAddress, tronAddress] = await Promise.allSettled([
     wdkInstance.getAccount('ethereum', index).then((a: any) => a.getAddress()),
     wdkInstance.getAccount('bitcoin', index).then((a: any) => a.getAddress()),
     wdkInstance.getAccount('tron', index).then((a: any) => a.getAddress()),
-    wdkInstance.getAccount('sepolia', index).then((a: any) => a.getAddress()),
   ])
 
+  const eth = ethAddress.status === 'fulfilled' ? ethAddress.value : ''
+  const btc = btcAddress.status === 'fulfilled' ? btcAddress.value : ''
+  const tron = tronAddress.status === 'fulfilled' ? tronAddress.value : ''
+
+  // Sepolia uses same EVM address as Ethereum; avoid registering Sepolia at startup
   return {
-    ethereum: ethAddress.status === 'fulfilled' ? ethAddress.value : '',
-    bitcoin: btcAddress.status === 'fulfilled' ? btcAddress.value : '',
-    tron: tronAddress.status === 'fulfilled' ? tronAddress.value : '',
-    sepolia: sepoliaAddress.status === 'fulfilled' ? sepoliaAddress.value : '',
+    ethereum: eth,
+    bitcoin: btc,
+    tron,
+    sepolia: eth,
   }
 }
 
@@ -171,6 +223,9 @@ export async function getAllAddresses(index = 0): Promise<Record<NetworkId, stri
  */
 export async function getNativeBalance(network: NetworkId, index = 0): Promise<bigint> {
   if (!wdkInstance) throw new Error('WDK not initialized')
+  if (network === 'sepolia') {
+    await ensureSepoliaRegistered()
+  }
   const account = await wdkInstance.getAccount(network, index)
   return account.getBalance()
 }
@@ -184,6 +239,9 @@ export async function getTokenBalance(
   index = 0,
 ): Promise<bigint> {
   if (!wdkInstance) throw new Error('WDK not initialized')
+  if (network === 'sepolia') {
+    await ensureSepoliaRegistered()
+  }
   const account = await wdkInstance.getAccount(network, index)
   return account.getTokenBalance(contractAddress)
 }
@@ -199,6 +257,9 @@ export async function quoteSend(
   index = 0,
 ): Promise<FeeQuote> {
   if (!wdkInstance) throw new Error('WDK not initialized')
+  if (network === 'sepolia') {
+    await ensureSepoliaRegistered()
+  }
   const account = await wdkInstance.getAccount(network, index)
 
   let feeRaw: bigint
@@ -237,6 +298,9 @@ export async function sendTransaction(
   index = 0,
 ): Promise<{ hash: string; fee: bigint }> {
   if (!wdkInstance) throw new Error('WDK not initialized')
+  if (network === 'sepolia') {
+    await ensureSepoliaRegistered()
+  }
   const account = await wdkInstance.getAccount(network, index)
 
   let result: { hash: string; fee: bigint }
@@ -293,6 +357,118 @@ export async function generateSeedPhrase(): Promise<string> {
 export async function validateSeedPhrase(phrase: string): Promise<boolean> {
   await loadModules()
   return WDK.isValidSeed(phrase)
+}
+
+/** Result of pinging a network's RPC/endpoint (does not require wallet to be initialized). */
+export interface NetworkConnectivityResult {
+  network: NetworkId
+  ok: boolean
+  /** Present when ok is false and we have an error message. */
+  error?: string
+  /** EVM: chainId from node; TRON: block number. */
+  detail?: string
+}
+
+/**
+ * Check if the Tether SDK can reach each network's RPC/endpoint.
+ * Call this to verify connectivity (e.g. after init or in a debug screen).
+ * Does not require the wallet to be initialized.
+ */
+export async function checkNetworkConnectivity(): Promise<NetworkConnectivityResult[]> {
+  const results: NetworkConnectivityResult[] = []
+
+  for (const [networkId, config] of Object.entries(NETWORKS) as [NetworkId, (typeof NETWORKS)[NetworkId]][]) {
+    if (config.rpcUrl != null) {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10_000)
+        const res = await fetch(config.rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_chainId',
+            params: [],
+            id: 1,
+          }),
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+        const data = await res.json()
+        const chainIdHex = data?.result
+        const ok = !!chainIdHex
+        const expectedChainId = config.chainId != null ? `0x${Number(config.chainId).toString(16)}` : undefined
+        const detail = chainIdHex ? `chainId ${chainIdHex}` : data?.error?.message ?? 'no result'
+        if (ok && expectedChainId && chainIdHex !== expectedChainId) {
+          results.push({
+            network: networkId,
+            ok: false,
+            error: `chainId mismatch: got ${chainIdHex}, expected ${expectedChainId}`,
+            detail: chainIdHex,
+          })
+        } else {
+          results.push({ network: networkId, ok, error: ok ? undefined : detail, detail: chainIdHex })
+        }
+      } catch (e) {
+        results.push({
+          network: networkId,
+          ok: false,
+          error: e instanceof Error ? e.message : String(e),
+        })
+      }
+      continue
+    }
+
+    if (config.tronProvider != null) {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10_000)
+        const res = await fetch(`${config.tronProvider}/wallet/getnowblock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visible: false }),
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+        const data = await res.json()
+        const blockNum = data?.block_header?.raw_data?.number
+        const ok = typeof blockNum === 'number'
+        results.push({
+          network: networkId,
+          ok,
+          error: ok ? undefined : (data?.Error ?? 'no block'),
+          detail: ok ? `block #${blockNum}` : undefined,
+        })
+      } catch (e) {
+        results.push({
+          network: networkId,
+          ok: false,
+          error: e instanceof Error ? e.message : String(e),
+        })
+      }
+      continue
+    }
+
+    if (networkId === 'bitcoin') {
+      results.push({
+        network: 'bitcoin',
+        ok: false,
+        error: 'Bitcoin uses Electrum WebSocket; connectivity not checked here',
+      })
+    }
+  }
+
+  return results
+}
+
+/**
+ * Check connectivity for a single network by ID.
+ */
+export async function checkNetworkConnectivityFor(
+  networkId: NetworkId,
+): Promise<NetworkConnectivityResult> {
+  const list = await checkNetworkConnectivity()
+  return list.find((r) => r.network === networkId) ?? { network: networkId, ok: false, error: 'Unknown network' }
 }
 
 // Internal helper

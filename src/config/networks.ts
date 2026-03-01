@@ -39,7 +39,7 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     color: '#627EEA',
     icon: 'eth',
     chainId: 1,
-    rpcUrl: 'https://eth.drpc.org',
+    rpcUrl: 'https://eth.llamarpc.com',
   },
   sepolia: {
     id: 'sepolia',
@@ -49,7 +49,7 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     color: '#A78BF5',
     icon: 'eth',
     chainId: 11155111,
-    rpcUrl: 'https://rpc.sepolia.org',
+    rpcUrl: 'https://ethereum-sepolia.publicnode.com',
   },
   bitcoin: {
     id: 'bitcoin',
@@ -113,7 +113,7 @@ export const TOKENS: TokenConfig[] = [
     decimals: 6,
     network: 'sepolia',
     // Official Tether USDT on Sepolia testnet
-    contractAddress: '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0',
+    contractAddress: '0xd077a400968890eacc75cdc901f0356c943e4fdb',
     isNative: false,
     color: '#26A17B',
     icon: 'usdt',

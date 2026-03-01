@@ -24,7 +24,11 @@ export function useBalances() {
         try {
           let raw: bigint
 
-          if (token.isNative) {
+          // Skip Sepolia balance fetch on startup to avoid JsonRpcProvider errors;
+          // Sepolia is registered lazily when user sends on Sepolia.
+          if (token.network === 'sepolia') {
+            raw = 0n
+          } else if (token.isNative) {
             raw = await wdk.getNativeBalance(token.network as NetworkId, 0)
           } else if (token.contractAddress) {
             raw = await wdk.getTokenBalance(

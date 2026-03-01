@@ -1,9 +1,9 @@
 {
   "name": "tetherwallet",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --reset-cache",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web"
