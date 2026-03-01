@@ -90,6 +90,7 @@ export default function HomeScreen() {
     setIsRefreshing(false)
   }, [refreshBalances])
 
+  console.log('balances-vikas-', balances)
   // Calculate total portfolio value (simplified - no price feed)
   const ethBalance = balances['eth']
   const btcBalance = balances['btc']
@@ -98,6 +99,7 @@ export default function HomeScreen() {
   const usdtTrcBalance = balances['usdt-trc20']
   const sepoliaEthBalance = balances['sepolia-eth']
   const usdtSepoliaBalance = balances['usdt-sepolia']
+
 
   if (wallets.length === 0) {
     return (
@@ -269,7 +271,7 @@ export default function HomeScreen() {
                       <View style={styles.addressInfo}>
                         <Text style={styles.networkName}>{NETWORK_NAMES[network]}</Text>
                         <Text style={styles.addressText} numberOfLines={1}>
-                          {(address && typeof address === 'string') ? `${address.slice(0, 8)}...${address.slice(-6)}` : ''}
+                          {(address && typeof address === 'string') ? `${address?.slice(0, 8)}...${address?.slice(-6)}` : ''}
                         </Text>
                       </View>
                       <Text style={styles.addressArrow}>›</Text>

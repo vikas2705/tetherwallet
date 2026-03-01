@@ -351,7 +351,7 @@ function StepConfirm({ toAddress, amount, token, feeQuote, isLoadingFee, isSendi
         colors={[Colors.card, Colors.surface]}
         style={styles.confirmCard}
       >
-        <ConfirmRow label="To" value={toAddress && typeof toAddress === 'string' ? `${toAddress.slice(0, 8)}...${toAddress.slice(-6)}` : ''} mono />
+        <ConfirmRow label="To" value={toAddress && typeof toAddress === 'string' ? `${toAddress?.slice(0, 8)}...${toAddress?.slice(-6)}` : ''} mono />
         <ConfirmRow label="Amount" value={`${amount} ${token.symbol}`} highlight />
         <ConfirmRow label="Network" value={NETWORKS[token.network as NetworkId]?.name ?? ''} />
         <ConfirmRow

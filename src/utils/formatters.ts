@@ -58,7 +58,7 @@ export function formatUSD(value: number): string {
 export function shortenAddress(address: string | undefined | null, chars = 6): string {
   const s = typeof address === 'string' ? address : ''
   if (!s || s.length < chars * 2 + 2) return s
-  return `${s.slice(0, chars)}...${s.slice(-chars)}`
+  return `${s?.slice(0, chars)}...${s?.slice(-chars)}`
 }
 
 /**
@@ -112,5 +112,5 @@ export function formatFee(feeWei: bigint, decimals: number, symbol: string): str
 export function shortenTxHash(hash: string | undefined | null, chars = 8): string {
   const s = typeof hash === 'string' ? hash : ''
   if (!s || s.length < chars * 2 + 2) return s
-  return `${s.slice(0, chars)}...${s.slice(-chars)}`
+  return `${s?.slice(0, chars)}...${s?.slice(-chars)}`
 }

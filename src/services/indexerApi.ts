@@ -142,7 +142,7 @@ export async function fetchIndexerBalance(
     const data: any = await response.json()
     console.log('vikas data', data)
     console.log('vikas data.tokenBalance.amount', data.tokenBalance.amount)
-    return (data.tokenBalance.amount.toString() ?? '0')
+    return (BigInt(Number(data.tokenBalance.amount)) ?? 0)
   } catch (error) {
     console.log("🚀 ~ vikas ~ error:", error)
     return 0n
@@ -216,7 +216,7 @@ export async function fetchSepoliaTokenBalance(
       return value
     }
     if (typeof __DEV__ !== 'undefined' && __DEV__ && (status !== '1' || message)) {
-      console.warn('[Sepolia balance]', status, message || result, { address: addr.slice(0, 10) + '...' })
+      console.warn('[Sepolia balance]', status, message || result, { address: addr?.slice(0, 10) + '...' })
     }
     return 0n
   } catch (err) {
