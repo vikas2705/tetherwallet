@@ -166,8 +166,8 @@ export default function HomeScreen() {
                 <Text style={styles.balanceTether}>
                   {formatBalance(
                     (usdtErcBalance?.raw ?? 0n) + (usdtTrcBalance?.raw ?? 0n) + (usdtSepoliaBalance?.raw ?? 0n),
-                    6,
-                    2,
+                    0,
+                    0,
                   )}
                 </Text>
                 <Text style={styles.balanceCurrency}> USDT</Text>
