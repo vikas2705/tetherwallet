@@ -12,6 +12,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native'
 import { router } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -52,42 +53,28 @@ export default function HomeScreen() {
     }
   }, [activeWalletId])
 
-  useEffect(() => {
-    const makeApiCall = async () => {
-      const path = '/api/v1/sepolia/usdt/0x9858effd232b4033e47d90003d41ec34ecaeda94/token-balances'
-      const proxyBase = process.env.EXPO_PUBLIC_WDK_PROXY_URL ?? ''
-      const apiKey = process.env.EXPO_PUBLIC_WDK_INDEXER_API_KEY ?? ''
-
-      // When proxy is set, call your Node server instead of wdk-api.tether.io (avoids ERR_NETWORK from app)
-      const url = proxyBase ? `${proxyBase.replace(/\/$/, '')}${path}` : `https://wdk-api.tether.io${path}`
-
-      try {
-        const { data } = await axios.get(url, {
-          timeout: 15000,
-          headers: proxyBase
-            ? { Accept: 'application/json' }
-            : {
-                'x-api-key': apiKey,
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'User-Agent': 'TetherWallet/1.0',
-              },
-          validateStatus: () => true,
-        })
-        console.log('makeApiCall result:', data)
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          console.error('WDK API ERR_NETWORK – no response. Code:', error.code)
-          if (proxyBase) {
-            console.error('Using proxy:', proxyBase, '– ensure the proxy server is running (node wdk-proxy-server.js)')
-          }
-        } else {
-          console.error('makeApiCall error:', error)
-        }
-      }
-    }
-    makeApiCall()
-  }, [])
+  // useEffect(() => {
+  //   const makeApiCall = async () => {
+  //     // Android emulator: 127.0.0.1 is the emulator itself; use 10.0.2.2 to reach host machine's localhost.
+  //     const host = Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1'
+  //     const url = `http://${host}:3000/api/sepolia/token-balances`
+  //     console.log('vikas url', url)
+  //     try {
+  //       console.log('🚀 ~ makeApiCall vikass ~ url:', url)
+  //       console.log('🚀 ~ makeApiCall 222 ~ url:', url)
+  //       fetch(url, { method: 'GET' })
+  //         .then((response) => {
+  //           console.log('🚀 ~ makeApiCall 444 ~ response:', response)
+  //           return response.text()
+  //         })
+  //         .then((result) => console.log('vikas result', result))
+  //         .catch((error) => console.error('vikas error', error))
+  //     } catch (error) {
+  //       console.log('🚀 ~ makeApiCall 333~ error:', error)
+  //     }
+  //   }
+  //   makeApiCall()
+  // }, [])
 
   // Refresh balances when addresses are loaded
   useEffect(() => {

@@ -7,6 +7,7 @@ import { useWalletStore } from '../store/walletStore'
 import * as wdk from '../services/wdkService'
 import { TOKENS } from '../config/networks'
 import type { NetworkId } from '../config/networks'
+import { fetchIndexerBalance } from '@/services/indexerApi'
 
 export function useBalances() {
   const { balances, setBalance, addresses } = useWalletStore()
@@ -27,7 +28,12 @@ export function useBalances() {
           // Skip Sepolia balance fetch on startup to avoid JsonRpcProvider errors;
           // Sepolia is registered lazily when user sends on Sepolia.
           if (token.network === 'sepolia') {
-            raw = 0n
+            console.log('vikas token.network', token.network)
+            console.log('vikas token.id', token.id)
+            console.log('vikas address', address)
+            raw = await fetchIndexerBalance(token.network, token.id, address)
+            console.log('vikas raw', raw)
+            console.log('vikas token.toString()', token)
           } else if (token.isNative) {
             raw = await wdk.getNativeBalance(token.network as NetworkId, 0)
           } else if (token.contractAddress) {

@@ -5,6 +5,7 @@
  * Base URL: https://wdk-api.tether.io
  */
 
+import { Platform } from 'react-native'
 import axios from 'axios'
 import type { NetworkId } from '../config/networks'
 import { getTokenById } from '../config/networks'
@@ -130,20 +131,20 @@ export async function fetchIndexerBalance(
   // if (!blockchain || !token || !address) return 0n
 
   try {
-    // DEBUG: hardcoded URL for quick debugging
-    const debugUrl =
-      'https://wdk-api.tether.io/api/v1/sepolia/usdt/0x9858effd232b4033e47d90003d41ec34ecaeda94/token-balances'
+    // DEBUG: hardcoded URL for quick debugging. Android emulator: use 10.0.2.2 to reach host machine's localhost.
+    const host = Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1'
+    const debugUrl = `http://${host}:3000/api/sepolia/token-balances`
+    console.log('vikas debugUrl', debugUrl)
     const response = await fetch(debugUrl, {
-      headers: {
-        'x-api-key': 'ee3ed5a39c9e449213c78e3684329a5de8cfd93839547b327b9d90d3ca4ab541',
-        'Content-Type': 'application/json',
-      },
+      method: 'GET',
     })
+    console.log('vikas response', response)
     const data: any = await response.json()
-    console.log("🚀 ~ fetchIndexerBalance ~ data:", data)
-    return BigInt(data.amount ?? '0')
+    console.log('vikas data', data)
+    console.log('vikas data.tokenBalance.amount', data.tokenBalance.amount)
+    return (data.tokenBalance.amount.toString() ?? '0')
   } catch (error) {
-    console.log("🚀 ~ fetchIndexerBalance ~ error:", error)
+    console.log("🚀 ~ vikas ~ error:", error)
     return 0n
   }
 }
