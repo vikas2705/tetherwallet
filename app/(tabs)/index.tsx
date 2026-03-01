@@ -232,7 +232,7 @@ export default function HomeScreen() {
                       <View style={styles.addressInfo}>
                         <Text style={styles.networkName}>{NETWORK_NAMES[network]}</Text>
                         <Text style={styles.addressText} numberOfLines={1}>
-                          {address.slice(0, 8)}...{address.slice(-6)}
+                          {address?.slice(0, 8)}...{address?.slice(-6)}
                         </Text>
                       </View>
                       <Text style={styles.addressArrow}>›</Text>
